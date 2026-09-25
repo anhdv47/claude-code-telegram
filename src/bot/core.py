@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, Optional
 from urllib.parse import urlparse, urlunparse
 
 import structlog
-from telegram import Update
+from telegram import BotCommandScopeAllGroupChats, Update
 from telegram.ext import (
     AIORateLimiter,
     Application,
@@ -141,6 +141,17 @@ class ClaudeCodeBot:
         """Set bot command menu via orchestrator."""
         commands = await self.orchestrator.get_bot_commands()
         await self.app.bot.set_my_commands(commands)
+
+        # Custom patch 2026-09-26: also publish the menu for group chats, so
+        # commands show up in project-topic forums (the default scope only
+        # covers private chats). Menu-only concern: never fail startup on it.
+        try:
+            await self.app.bot.set_my_commands(
+                commands, scope=BotCommandScopeAllGroupChats()
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Could not set group-chat command menu", error=str(exc))
+
         logger.info("Bot commands set", commands=[cmd.command for cmd in commands])
 
     def _register_handlers(self) -> None:
