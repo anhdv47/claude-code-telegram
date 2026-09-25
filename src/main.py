@@ -73,6 +73,12 @@ def setup_logging(debug: bool = False) -> None:
         cache_logger_on_first_use=True,
     )
 
+    # Custom patch 2026-09-21: quiet noisy HTTP client logs — the bot polls
+    # Telegram via httpx every ~10s and INFO logs each request URL including
+    # the bot token. Keep only warnings/errors.
+    for _noisy_logger in ("httpx", "httpcore"):
+        logging.getLogger(_noisy_logger).setLevel(logging.WARNING)
+
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
